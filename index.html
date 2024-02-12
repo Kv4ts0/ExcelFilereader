@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel File Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        h2 {
+            color: #6a1b9a;
+        }
+        #container {
+            max-width: 100%;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #6a1b9a;
+            color: #fff;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        input[type="file"]:hover {
+            background-color: #4a148c;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #6a1b9a;
+            color: #fff;
+        }
+        td {
+            background-color: #f3e5f5;
+        }
+        tr:nth-child(even) td {
+            background-color: #e1bee7;
+        }
+        .pagination {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .pagination button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            background-color: #6a1b9a;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .pagination button:hover {
+            background-color: #4a148c;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h2>Upload Excel File</h2>
+        <input type="file" id="fileInput" accept=".xlsx, .xls">
+        <div id="tableContainer"></div>
+        <div id="paginationContainer" class="pagination"></div>
+    </div>
+
+    <script>
+        let tableData = [];
+        let currentPage = 1;
+        const rowsPerPage = 30;
+
+        document.getElementById('fileInput').addEventListener('change', handleFile);
+
+        function handleFile(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                tableData = XLSX.utils.sheet_to_json(sheet, {header: 1});
+
+                renderTable(1);
+                renderPagination();
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function renderTable(page) {
+            const tableContainer = document.getElementById('tableContainer');
+            tableContainer.innerHTML = '';
+            const table = document.createElement('table');
+
+            const startIndex = (page - 1) * rowsPerPage;
+            const endIndex = startIndex + rowsPerPage;
+            const currentPageData = tableData.slice(startIndex, endIndex);
+
+            const tableHeader = tableData.slice(0, 1)[0]; // First row contains the headers
+            const thead = document.createElement('thead');
+            const tr = document.createElement('tr');
+            tableHeader.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                tr.appendChild(th);
+            });
+            thead.appendChild(tr);
+            table.appendChild(thead);
+
+            currentPageData.forEach((row, rowIndex) => {
+                const tr = document.createElement('tr');
+                row.forEach((cellData, cellIndex) => {
+                    const cell = document.createElement('td');
+                    cell.textContent = cellData;
+                    tr.appendChild(cell);
+                });
+                table.appendChild(tr);
+            });
+
+            tableContainer.appendChild(table);
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil((tableData.length - 1) / rowsPerPage); // Exclude header row
+            const paginationContainer = document.getElementById('paginationContainer');
+            paginationContainer.innerHTML = '';
+
+            for (let i = 1; i <= totalPages; i++) {
+                const button = document.createElement('button');
+                button.textContent = i;
+                button.addEventListener('click', () => {
+                    currentPage = i;
+                    renderTable(currentPage);
+                    highlightCurrentPage();
+                });
+                paginationContainer.appendChild(button);
+            }
+
+            highlightCurrentPage();
+        }
+
+        function highlightCurrentPage() {
+            const buttons = document.querySelectorAll('.pagination button');
+            buttons.forEach(button => {
+                if (parseInt(button.textContent) === currentPage) {
+                    button.style.backgroundColor = '#4a148c';
+                } else {
+                    button.style.backgroundColor = '#6a1b9a';
+                }
+            });
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+</body>
+</html>
