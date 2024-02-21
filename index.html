@@ -13,7 +13,7 @@
             padding: 0;
         }
         h2 {
-            color: #6a1b9a;
+            color: #4a148c;
         }
         #container {
             max-width: 100%;
@@ -23,15 +23,17 @@
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        input[type="file"] {
+        input[type="file"], input[type="text"] {
             margin-bottom: 20px;
             padding: 10px;
             border: none;
             border-radius: 4px;
+            font-size: 16px;
+        }
+        input[type="file"] {
             background-color: #6a1b9a;
             color: #fff;
             cursor: pointer;
-            font-size: 16px;
         }
         input[type="file"]:hover {
             background-color: #4a148c;
@@ -73,12 +75,17 @@
         .pagination button:hover {
             background-color: #4a148c;
         }
+        .red-cell {
+            background-color: red;
+            color: black;
+        }
     </style>
 </head>
 <body>
     <div id="container">
         <h2>Upload Excel File</h2>
-        <input type="file" id="fileInput" accept=".xlsx, .xls">
+        <input type="file" id="fileInput" accept=".xlsx, .xls, .xml">
+        <input type="text" id="searchInput" placeholder="Search by product code" oninput="searchTable()">
         <div id="tableContainer"></div>
         <div id="paginationContainer" class="pagination"></div>
     </div>
@@ -103,43 +110,73 @@
 
                 renderTable(1);
                 renderPagination();
+                document.getElementById('searchInput').focus();
             };
 
             reader.readAsArrayBuffer(file);
         }
 
-        function renderTable(page) {
-            const tableContainer = document.getElementById('tableContainer');
-            tableContainer.innerHTML = '';
-            const table = document.createElement('table');
+        
+        function renderTable(page, data = tableData) {
+    const tableContainer = document.getElementById('tableContainer');
+    tableContainer.innerHTML = '';
+    const table = document.createElement('table');
 
-            const startIndex = (page - 1) * rowsPerPage;
-            const endIndex = startIndex + rowsPerPage;
-            const currentPageData = tableData.slice(startIndex, endIndex);
+    const startIndex = (page - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const currentPageData = data.slice(startIndex, endIndex);
 
-            const tableHeader = tableData.slice(0, 1)[0]; // First row contains the headers
-            const thead = document.createElement('thead');
-            const tr = document.createElement('tr');
-            tableHeader.forEach(header => {
-                const th = document.createElement('th');
-                th.textContent = header;
-                tr.appendChild(th);
-            });
-            thead.appendChild(tr);
-            table.appendChild(thead);
+    const tableHeader = data.slice(0, 1)[0];
+    const thead = document.createElement('thead');
+    const tr = document.createElement('tr');
+    tableHeader.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        tr.appendChild(th);
+    });
+    thead.appendChild(tr);
+    table.appendChild(thead);
 
-            currentPageData.forEach((row, rowIndex) => {
-                const tr = document.createElement('tr');
-                row.forEach((cellData, cellIndex) => {
-                    const cell = document.createElement('td');
-                    cell.textContent = cellData;
-                    tr.appendChild(cell);
-                });
-                table.appendChild(tr);
-            });
+    currentPageData.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+        row.forEach((cellData, cellIndex) => {
+            const cell = document.createElement('td');
+            cell.textContent = cellData;
+            tr.appendChild(cell);
+            if (cellIndex === 2) {
+                if (cellData === 'SomeValue') {
+                    cell.style.backgroundColor = 'red';
+                } else {
+                    cell.style.backgroundColor = '';
+                }
+            }
+        });
 
-            tableContainer.appendChild(table);
+        if (row[1] === "დაბეგვრადი") {
+            const thirdCell = tr.children[2]; 
+            if (thirdCell) {
+                thirdCell.style.backgroundColor = 'red';
+                thirdCell.style.color = 'black';
+
+                const audio = new Audio('alert.mp3');
+                audio.play();
+            }
+        } else if (row[1] === "დაუბეგრავი") {
+            const thirdCell = tr.children[2]; 
+            if (thirdCell) {
+                thirdCell.style.backgroundColor = 'green';
+                thirdCell.style.color = 'black'; 
+            }
         }
+
+        table.appendChild(tr);
+    });
+
+    tableContainer.appendChild(table);
+}
+
+
+
 
         function renderPagination() {
             const totalPages = Math.ceil((tableData.length - 1) / rowsPerPage); // Exclude header row
@@ -169,6 +206,15 @@
                     button.style.backgroundColor = '#6a1b9a';
                 }
             });
+        }
+
+        function searchTable() {
+            const searchValue = document.getElementById('searchInput').value.trim().toLowerCase();
+            const filteredData = tableData.filter(row => {
+                return row[2].toLowerCase().includes(searchValue); // Assuming the product code is in the third column (index 2)
+            });
+            renderTable(1, filteredData);
+            renderPagination();
         }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
